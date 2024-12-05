@@ -123,18 +123,17 @@ public class CrowdServletFilter implements Filter {
      *      javax.servlet.ServletResponse, javax.servlet.FilterChain)
      */
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response,
-            FilterChain chain) throws IOException, ServletException {
-        if (request instanceof HttpServletRequest
-                && response instanceof HttpServletResponse) {
-            HttpServletRequest req = (HttpServletRequest) request;
-            HttpServletResponse res = (HttpServletResponse) response;
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+        if (request instanceof HttpServletRequest && response instanceof HttpServletResponse) {
+
+            HttpServletRequest req = (HttpServletRequest)request;
+            HttpServletResponse resp = (HttpServletResponse)response;
 
             // check if we have a token
             // if it is not present, we are not / no longer authenticated
             boolean isValidated = false;
             try {
-                isValidated = this.configuration.isAuthenticated(req, res);
+                isValidated = this.configuration.isAuthenticated(req, resp);
             } catch (OperationFailedException ex) {
                 LOG.log(Level.SEVERE, operationFailed(), ex);
             }
@@ -146,7 +145,7 @@ public class CrowdServletFilter implements Filter {
                 sc.setAuthentication(null);
                 // close the SSO session
                 if (null != this.rememberMe) {
-                    this.rememberMe.logout(req, res);
+                    this.rememberMe.logout(req, resp);
                 }
 
                 // invalidate the current session
@@ -161,9 +160,8 @@ public class CrowdServletFilter implements Filter {
                 Cookie cookie = new Cookie(SPRING_SECURITY_REMEMBER_ME_COOKIE_KEY, "");
                 cookie.setHttpOnly(true);
                 cookie.setSecure(true);
-                cookie.setPath(req.getContextPath().length() > 0 ? req
-                        .getContextPath() : "/");
-                res.addCookie(cookie);
+                cookie.setPath(req.getContextPath().length() > 0 ? req.getContextPath() : "/");
+                resp.addCookie(cookie);
             } else {
                 SecurityContext sc = SecurityContextHolder.getContext();
 
@@ -174,7 +172,12 @@ public class CrowdServletFilter implements Filter {
                     if (null != this.rememberMe) {
                         LOG.log(Level.FINE, "User is logged in via Crowd, but no authentication token available; trying auto-login...");
 
-                        Authentication auth = this.rememberMe.autoLogin(req, res);
+                        Authentication auth = this.rememberMe.autoLogin(
+                                //(HttpServletRequest) request,
+                                //(HttpServletResponse) response
+                                (jakarta.servlet.http.HttpServletRequest)req,
+                                (jakarta.servlet.http.HttpServletResponse)resp
+                        );
                         if (null != auth) {
                             LOG.log(Level.FINE, "User successfully logged in");
                             sc.setAuthentication(auth);

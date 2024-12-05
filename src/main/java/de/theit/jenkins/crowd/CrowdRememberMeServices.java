@@ -84,22 +84,18 @@ public class CrowdRememberMeServices implements RememberMeServices {
         this.configuration = pConfiguration;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * @see org.springframework.security.web.authentication.RememberMeServices#autoLogin(javax.servlet.http.HttpServletRequest,
-     *      javax.servlet.http.HttpServletResponse)
-     */
     @Override
-    public Authentication autoLogin(HttpServletRequest request, HttpServletResponse response) {
+    public Authentication autoLogin(jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response) {
+        HttpServletRequest req = (javax.servlet.http.HttpServletRequest)request;
+
         Authentication result = null;
 
         if (configuration.isUseSSO()) {
-            List<ValidationFactor> validationFactors = this.configuration.getValidationFactors(request);
+            List<ValidationFactor> validationFactors = this.configuration.getValidationFactors(req);
 
             // check whether a SSO token is available
             LOG.log(Level.FINER, "Checking whether a SSO token is available...");
-            String ssoToken = this.configuration.getCrowdToken(request);
+            String ssoToken = this.configuration.getCrowdToken(req);
 
             // auto-login is only possible when the SSO token was found
             if (null != ssoToken) {
@@ -127,7 +123,7 @@ public class CrowdRememberMeServices implements RememberMeServices {
                         authorities.addAll(this.configuration.getAuthoritiesForUser(user.getName()));
                         result = new CrowdAuthenticationToken(user.getName(), null, authorities, ssoToken);
                     }
-                // See: https://github.com/jenkinsci/jenkins/pull/4107                    
+                    // See: https://github.com/jenkinsci/jenkins/pull/4107
                 } catch (IllegalStateException ex) {
                     LOG.log(Level.WARNING, "Encountered IllegalStateException. System init may not have completed yet.");
                 } catch (InvalidTokenException ex) {
@@ -144,18 +140,14 @@ public class CrowdRememberMeServices implements RememberMeServices {
         return result;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * @see org.springframework.security.web.authentication.RememberMeServices#loginFail(javax.servlet.http.HttpServletRequest,
-     *      javax.servlet.http.HttpServletResponse)
-     */
     @Override
-    public void loginFail(HttpServletRequest request,
-            HttpServletResponse response) {
+    public void loginFail(jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response) {
         try {
             LOG.log(Level.FINE, "Login failed");
-            this.configuration.logout(request, response);
+            HttpServletRequest req = (javax.servlet.http.HttpServletRequest)request;
+            HttpServletResponse resp = (javax.servlet.http.HttpServletResponse)response;
+
+            this.configuration.logout(req, resp);
         } catch (ApplicationPermissionException ex) {
             LOG.log(Level.WARNING, applicationPermission());
         } catch (InvalidAuthenticationException ex) {
@@ -165,24 +157,19 @@ public class CrowdRememberMeServices implements RememberMeServices {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * @see org.springframework.security.web.authentication.RememberMeServices#loginSuccess(javax.servlet.http.HttpServletRequest,
-     *      javax.servlet.http.HttpServletResponse,
-     *      org.springframework.security.core.Authentication)
-     */
     @Override
-    public void loginSuccess(HttpServletRequest request,
-            HttpServletResponse response,
-            Authentication successfulAuthentication) {
+    public void loginSuccess(jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response, Authentication successfulAuthentication) {
+
+        HttpServletRequest req = (javax.servlet.http.HttpServletRequest)request;
+        HttpServletResponse resp = (javax.servlet.http.HttpServletResponse)response;
+
         if (!(successfulAuthentication instanceof CrowdAuthenticationToken)) {
             // authentication token doesn't belong to us...
             return;
         }
         CrowdAuthenticationToken crowdAuthenticationToken = (CrowdAuthenticationToken) successfulAuthentication;
 
-        List<ValidationFactor> validationFactors = this.configuration.getValidationFactors(request);
+        List<ValidationFactor> validationFactors = this.configuration.getValidationFactors(req);
 
         // check if there's already a SSO token in the authentication object
         String ssoToken = crowdAuthenticationToken.getSSOToken();
@@ -192,13 +179,13 @@ public class CrowdRememberMeServices implements RememberMeServices {
                 // SSO token not yet available => authenticate the user and
                 // create the SSO token
                 LOG.log(Level.FINE, "SSO token not yet available => authenticate user...");
-                this.configuration.authenticate(request, response, crowdAuthenticationToken.getName(),
+                this.configuration.authenticate(req, resp, crowdAuthenticationToken.getName(),
                         crowdAuthenticationToken.getCredentials());
 
                 // user is successfully authenticated
                 // => retrieve the SSO token
                 LOG.log(Level.FINER, "Retrieve SSO token...");
-                ssoToken = this.configuration.getCrowdToken(request);
+                ssoToken = this.configuration.getCrowdToken(req);
             }
 
             if (null == ssoToken) {

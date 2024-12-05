@@ -16,7 +16,11 @@ public class CrowdSecurityRealmTest {
 
     @Test
     public void testCrowdSecurityRealmConstructorWithTypicalData() {
-        String url = "https://crowd2/";
+        // "https://crowd2/"
+        // this requires changes in hosts file
+        // this test is expecting a setup alredy in place
+
+        String url = "http://localhost:8095/";
         String applicationName = "Jenkins";
         Secret password = Secret.fromString("crowd_password");
         String group = "restricted_users";
